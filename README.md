@@ -4,13 +4,15 @@ Camel is a command-line interface (CLI) used to interact with llama2, an AI from
 
 ## Get Started
 
+Check [get started video on youtube here](https://youtu.be/cs-aEjyixGU?si=X5sBF2wz_RbKeUiZ).
+
 1. Run the Ollama Docker container:
 
 ```shell
 sudo docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 ```
 
-For more detailed information, refer to the [Ollama Quickstart Guide](https://github.com/jmorganca/ollama?tab=readme-ov-file#quickstart).
+For more detailed information, refer to the [Ollama Quickstart Docker](https://hub.docker.com/r/ollama/ollama). Please note we are using CPU only, the AI will response slow, if you have GPU, you can follow the instruction to run the docker and using your GPU to improve performance.
 
 2. Pull the llama2 model:
 
