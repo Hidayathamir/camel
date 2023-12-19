@@ -128,7 +128,7 @@ type History struct {
 	Chat []dto.ReqStreamChatMessage `json:"chat"`
 }
 
-var camelDir = "camel"
+var camelDir = "camel_data"
 var historyFile = "history.json"
 var questionFile = "question.md"
 var answerFile = "answer.md"
