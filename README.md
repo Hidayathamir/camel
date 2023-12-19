@@ -1,6 +1,6 @@
 # camel
 
-Camel is a command-line interface (CLI) used to locally interact with llama2, an AI from Meta.
+Camel is a command-line interface (CLI) used to locally interact with [llama2](https://ai.meta.com/llama/), an AI from Meta.
 
 ## Get Started
 
