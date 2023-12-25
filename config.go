@@ -1,8 +1,11 @@
 package camel
 
-const (
+import "path/filepath"
+
+var (
 	CamelDir     = "camel_data"
-	HistoryFile  = "history.json"
-	QuestionFile = "question.md"
-	AnswerFile   = "answer.md"
+	HistoryFile  = filepath.Join(CamelDir, "history.json")
+	QuestionFile = filepath.Join(CamelDir, "question.md")
+	AnswerFile   = filepath.Join(CamelDir, "answer.md")
+	ImagesDir    = filepath.Join(CamelDir, "images")
 )

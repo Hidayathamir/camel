@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -81,10 +82,29 @@ func (c *chatController) SendChatRequest(ctx context.Context, model camel.Model)
 			return
 		}
 
-		path := filepath.Join(camel.CamelDir, camel.QuestionFile)
-		logrus.Infof("please write your question in `%s` file", path)
+		if err := os.MkdirAll(camel.ImagesDir, os.ModePerm); err != nil {
+			err = erra.Wrapf(err, "error mkdir %s", camel.ImagesDir)
+			logrus.Error(err.Error())
+			return
+		}
+
+		logrus.Infof("please write your question in `%s` file", camel.QuestionFile)
 		return
 	}
+
+	base64Images, err := getUserQuestionImagesBase64()
+	if err != nil {
+		if !errors.Is(err, camel.ErrImagesDiNotFound) {
+			err = erra.Wrapf(err, "error get user question images base64")
+			logrus.Error(err.Error())
+			return
+		}
+		err = erra.Wrapf(err, "got error but will keep continue")
+		logrus.Warn(err.Error())
+	}
+
+	userQuestion.Images = base64Images
+
 	payload.Messages = append(payload.Messages, userQuestion)
 	history.Chat = payload.Messages
 
@@ -129,19 +149,17 @@ func (c *chatController) SendChatRequest(ctx context.Context, model camel.Model)
 // it into a History struct. If the file does not exist or encounters an error
 // during reading or parsing, it returns an empty History struct and an error.
 func getHistoryFromFile() (dto.History, error) {
-	path := filepath.Join(camel.CamelDir, camel.HistoryFile)
-
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(camel.HistoryFile)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
-			return dto.History{}, erra.Wrapf(err, "error read file %s", path)
+			return dto.History{}, erra.Wrapf(err, "error read file %s", camel.HistoryFile)
 		}
 		return dto.History{}, nil
 	}
 
 	var h dto.History
 	if err := json.Unmarshal(content, &h); err != nil {
-		err = erra.Wrapf(err, "error unmarshal content of file %s into struct History", path)
+		err = erra.Wrapf(err, "error unmarshal content of file %s into struct History", camel.HistoryFile)
 		return dto.History{}, erra.Wrap(err, camel.ErrFailedParseHistoryFile)
 	}
 
@@ -153,11 +171,9 @@ func getHistoryFromFile() (dto.History, error) {
 // dto.ReqStreamChatMessage struct with the role set as 'dto.RoleUser' and the
 // content from the file.
 func getUserQuestionFromFile() (dto.ReqStreamChatMessage, error) {
-	path := filepath.Join(camel.CamelDir, camel.QuestionFile)
-
-	questionContent, err := os.ReadFile(path)
+	questionContent, err := os.ReadFile(camel.QuestionFile)
 	if err != nil {
-		return dto.ReqStreamChatMessage{}, erra.Wrapf(err, "error read file %s", path)
+		return dto.ReqStreamChatMessage{}, erra.Wrapf(err, "error read file %s", camel.QuestionFile)
 	}
 
 	userQuestion := dto.ReqStreamChatMessage{
@@ -166,6 +182,38 @@ func getUserQuestionFromFile() (dto.ReqStreamChatMessage, error) {
 	}
 
 	return userQuestion, nil
+}
+
+// getUserQuestionImagesBase64 reads image files from a specified directory path,
+// encodes them to base64, and returns a slice of base64 encoded strings.
+// It skips directories and logs warnings for any file read errors encountered.
+func getUserQuestionImagesBase64() ([]dto.Base64String, error) {
+	files, err := os.ReadDir(camel.ImagesDir)
+	if err != nil {
+		return nil, erra.Wrap(err, camel.ErrImagesDiNotFound)
+	}
+
+	imagesBase64 := []dto.Base64String{}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		imgPath := filepath.Join(camel.ImagesDir, file.Name())
+		content, err := os.ReadFile(imgPath)
+		if err != nil {
+			err = erra.Wrapf(err, "error read file %s", imgPath)
+			err = erra.Wrapf(err, "will skip file %s", imgPath)
+			logrus.Warn(err.Error())
+			continue
+		}
+
+		imgBase64 := base64.StdEncoding.EncodeToString(content)
+		imagesBase64 = append(imagesBase64, dto.Base64String(imgBase64))
+	}
+
+	return imagesBase64, nil
 }
 
 // createQuestionFileTemplate generates a template for a question file at the
@@ -177,15 +225,14 @@ func createQuestionFileTemplate() error {
 		return erra.Wrapf(err, "error mkdir %s", camel.CamelDir)
 	}
 
-	path := filepath.Join(camel.CamelDir, camel.QuestionFile)
-	f, err := os.Create(path)
+	f, err := os.Create(camel.QuestionFile)
 	if err != nil {
-		return erra.Wrapf(err, "error create file %s", path)
+		return erra.Wrapf(err, "error create file %s", camel.QuestionFile)
 	}
 	defer f.Close()
 
 	if _, err = f.WriteString("# my question\n"); err != nil {
-		return erra.Wrapf(err, "error write string to file %s", path)
+		return erra.Wrapf(err, "error write string to file %s", camel.QuestionFile)
 	}
 
 	return nil
@@ -195,15 +242,14 @@ func createQuestionFileTemplate() error {
 // the provided answer string into it. If the file creation or writing
 // encounters an error, it returns an error.
 func writeAnswerFile(answer string) error {
-	path := filepath.Join(camel.CamelDir, camel.AnswerFile)
-	f, err := os.Create(path)
+	f, err := os.Create(camel.AnswerFile)
 	if err != nil {
-		return erra.Wrapf(err, "error create file %s", path)
+		return erra.Wrapf(err, "error create file %s", camel.AnswerFile)
 	}
 	defer f.Close()
 
 	if _, err = f.WriteString(answer); err != nil {
-		return erra.Wrapf(err, "error write string to file %s", path)
+		return erra.Wrapf(err, "error write string to file %s", camel.AnswerFile)
 	}
 
 	return nil
@@ -222,10 +268,8 @@ func updateHistoryFile(history dto.History, content string) error {
 		return erra.Wrapf(err, "error json marshal history")
 	}
 
-	path := filepath.Join(camel.CamelDir, camel.HistoryFile)
-
-	if err := os.WriteFile(path, jsonByte, 0644); err != nil {
-		return erra.Wrapf(err, "error write into file %s", path)
+	if err := os.WriteFile(camel.HistoryFile, jsonByte, 0644); err != nil {
+		return erra.Wrapf(err, "error write into file %s", camel.HistoryFile)
 	}
 
 	return nil

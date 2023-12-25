@@ -7,18 +7,23 @@ type ReqStreamChat struct {
 	Messages []ReqStreamChatMessage `json:"messages"`
 }
 
+type Base64String string
+
 type ReqStreamChatMessage struct {
-	Role    camel.Role
-	Content string
+	Role    camel.Role     `json:"role"`
+	Content string         `json:"content"`
+	Images  []Base64String `json:"images"`
 }
 
 type History struct {
 	Chat []ReqStreamChatMessage `json:"chat"`
 }
 
+type stringDateTime string
+
 type ResStreamChat struct {
 	Model     camel.Model          `json:"model"`
-	CreatedAt string               `json:"created_at"`
+	CreatedAt stringDateTime       `json:"created_at"`
 	Message   ResStreamChatMessage `json:"message"`
 	Done      bool                 `json:"done"`
 }

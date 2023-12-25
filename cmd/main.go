@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/Hidayathamir/camel"
 	"github.com/Hidayathamir/camel/controller"
 	"github.com/Hidayathamir/camel/repository"
 	"github.com/Hidayathamir/camel/service"
@@ -17,7 +18,7 @@ func main() {
 	}
 
 	chatController := initChatController()
-	chatController.SendChatRequest(context.Background())
+	chatController.SendChatRequest(context.Background(), camel.ModelLlama27b)
 }
 
 func initChatController() controller.ChatController {
