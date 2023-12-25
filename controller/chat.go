@@ -19,7 +19,7 @@ import (
 )
 
 type ChatController interface {
-	SendChatRequest(ctx context.Context)
+	SendChatRequest(ctx context.Context, model camel.Model)
 }
 
 type chatController struct {
@@ -47,14 +47,14 @@ func NewChatController(chatService service.ChatService) ChatController {
 // response streaming and channel usage. Refactoring to adhere strictly to clean
 // architecture might result in increased complexity or decreased
 // maintainability due to the nature of response streaming and channel handling.
-func (c *chatController) SendChatRequest(ctx context.Context) {
+func (c *chatController) SendChatRequest(ctx context.Context, model camel.Model) {
 	// this function is kinda violate clean arch, this layers should only think
 	// about gathering input and then pass it into service. However since we are
 	// streaming the response from llama2 and using channel to stream the
 	// response, it's too complex to implement it in layer service and then
 	// pass response to controller.
 
-	payload := dto.ReqStreamChat{Model: camel.ModelLlama27b}
+	payload := dto.ReqStreamChat{Model: model}
 
 	history, err := getHistoryFromFile()
 	if err != nil {
