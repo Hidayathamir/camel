@@ -54,7 +54,7 @@ func (c *chatController) SendChatRequest(ctx context.Context) {
 	// response, it's too complex to implement it in layer service and then
 	// pass response to controller.
 
-	payload := dto.ReqStreamChat{Model: dto.ModelLlama27b}
+	payload := dto.ReqStreamChat{Model: camel.ModelLlama27b}
 
 	history, err := getHistoryFromFile()
 	if err != nil {
@@ -81,7 +81,7 @@ func (c *chatController) SendChatRequest(ctx context.Context) {
 			return
 		}
 
-		path := filepath.Join(camelDir, questionFile)
+		path := filepath.Join(camel.CamelDir, camel.QuestionFile)
 		logrus.Infof("please write your question in `%s` file", path)
 		return
 	}
@@ -124,34 +124,25 @@ func (c *chatController) SendChatRequest(ctx context.Context) {
 	}
 }
 
-type History struct {
-	Chat []dto.ReqStreamChatMessage `json:"chat"`
-}
-
-var camelDir = "camel_data"
-var historyFile = "history.json"
-var questionFile = "question.md"
-var answerFile = "answer.md"
-
 // getHistoryFromFile retrieves history data from a file located at the
 // predefined camelDir. It reads the file content, parses it as JSON, and maps
 // it into a History struct. If the file does not exist or encounters an error
 // during reading or parsing, it returns an empty History struct and an error.
-func getHistoryFromFile() (History, error) {
-	path := filepath.Join(camelDir, historyFile)
+func getHistoryFromFile() (dto.History, error) {
+	path := filepath.Join(camel.CamelDir, camel.HistoryFile)
 
 	content, err := os.ReadFile(path)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
-			return History{}, erra.Wrapf(err, "error read file %s", path)
+			return dto.History{}, erra.Wrapf(err, "error read file %s", path)
 		}
-		return History{}, nil
+		return dto.History{}, nil
 	}
 
-	var h History
+	var h dto.History
 	if err := json.Unmarshal(content, &h); err != nil {
 		err = erra.Wrapf(err, "error unmarshal content of file %s into struct History", path)
-		return History{}, erra.Wrap(err, camel.ErrFailedParseHistoryFile)
+		return dto.History{}, erra.Wrap(err, camel.ErrFailedParseHistoryFile)
 	}
 
 	return h, nil
@@ -162,7 +153,7 @@ func getHistoryFromFile() (History, error) {
 // dto.ReqStreamChatMessage struct with the role set as 'dto.RoleUser' and the
 // content from the file.
 func getUserQuestionFromFile() (dto.ReqStreamChatMessage, error) {
-	path := filepath.Join(camelDir, questionFile)
+	path := filepath.Join(camel.CamelDir, camel.QuestionFile)
 
 	questionContent, err := os.ReadFile(path)
 	if err != nil {
@@ -170,7 +161,7 @@ func getUserQuestionFromFile() (dto.ReqStreamChatMessage, error) {
 	}
 
 	userQuestion := dto.ReqStreamChatMessage{
-		Role:    dto.RoleUser,
+		Role:    camel.RoleUser,
 		Content: string(questionContent),
 	}
 
@@ -182,11 +173,11 @@ func getUserQuestionFromFile() (dto.ReqStreamChatMessage, error) {
 // the questionFile constant and writes a default question string into it.
 // If the file creation or writing encounters an error, it returns an error.
 func createQuestionFileTemplate() error {
-	if err := os.MkdirAll(camelDir, os.ModePerm); err != nil {
-		return erra.Wrapf(err, "error mkdir %s", camelDir)
+	if err := os.MkdirAll(camel.CamelDir, os.ModePerm); err != nil {
+		return erra.Wrapf(err, "error mkdir %s", camel.CamelDir)
 	}
 
-	path := filepath.Join(camelDir, questionFile)
+	path := filepath.Join(camel.CamelDir, camel.QuestionFile)
 	f, err := os.Create(path)
 	if err != nil {
 		return erra.Wrapf(err, "error create file %s", path)
@@ -204,7 +195,7 @@ func createQuestionFileTemplate() error {
 // the provided answer string into it. If the file creation or writing
 // encounters an error, it returns an error.
 func writeAnswerFile(answer string) error {
-	path := filepath.Join(camelDir, answerFile)
+	path := filepath.Join(camel.CamelDir, camel.AnswerFile)
 	f, err := os.Create(path)
 	if err != nil {
 		return erra.Wrapf(err, "error create file %s", path)
@@ -220,9 +211,9 @@ func writeAnswerFile(answer string) error {
 
 // updateHistoryFile appends a new chat message to the history and writes the
 // updated history to a file located at the predefined camelDir.
-func updateHistoryFile(history History, content string) error {
+func updateHistoryFile(history dto.History, content string) error {
 	history.Chat = append(history.Chat, dto.ReqStreamChatMessage{
-		Role:    dto.RoleAssistant,
+		Role:    camel.RoleAssistant,
 		Content: content,
 	})
 
@@ -231,7 +222,7 @@ func updateHistoryFile(history History, content string) error {
 		return erra.Wrapf(err, "error json marshal history")
 	}
 
-	path := filepath.Join(camelDir, historyFile)
+	path := filepath.Join(camel.CamelDir, camel.HistoryFile)
 
 	if err := os.WriteFile(path, jsonByte, 0644); err != nil {
 		return erra.Wrapf(err, "error write into file %s", path)

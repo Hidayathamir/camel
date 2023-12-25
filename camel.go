@@ -1,8 +1,14 @@
 package camel
 
-import "errors"
+type Model string
 
-var (
-	ErrFailedParseHistoryFile = errors.New("error failed parse history file")
-	ErrQuestionFileNotFound   = errors.New("error question file not found")
+const (
+	ModelLlama27b Model = "llama2:7b"
+)
+
+type Role string
+
+const (
+	RoleUser      Role = "user"
+	RoleAssistant Role = "assistant"
 )
